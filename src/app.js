@@ -13,7 +13,7 @@ app.use(cors({
 app.use(express.json({ limit: "16kb" }))
 
 //url handled with params
-app.use(express.json({ limit: "16kb" }))
+app.use(express.urlencoded({ extended: true, limit: "16kb" }))
 
 //to access the public folder for file store or to get the file
 app.use(express.static("public"))
