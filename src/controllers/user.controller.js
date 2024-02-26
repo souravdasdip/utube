@@ -4,6 +4,31 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
+const generateAccessAndRefreshToken = async (userId) => {
+    try {
+        const user = await User.findById(userId)
+
+        //generate user access token 
+        const accesstoken = await user.generateAccessToken()
+
+        //generate refresh token
+        const refreshToken = await user.generateRefreshToken()
+
+        //update refresh token in database
+        user.refreshToken = refreshToken
+
+        //then user should be saved without validation
+        await user.save({ validateBeforeSave: false })
+
+
+        return {
+            accesstoken,
+            refreshToken
+        }
+    } catch (error) {
+        throw new ApiError(500, "Somthing went wrong while generating access and refresh token!")
+    }
+}
 
 const registerUser = asyncHandler(async (req, res) => {
     // get user details
@@ -80,7 +105,56 @@ const registerUser = asyncHandler(async (req, res) => {
     )
 })
 
+const loginUser = asyncHandler(async (req, res) => {
+    const { username, email, password } = req.body
+
+    console.log({ email });
+    // validation
+    if (!username || !email) {
+        throw new ApiError(400, "Email and Username is required!")
+    }
+
+    const user = await User.findOne({
+        $or: [{ username }, { email }]
+    })
+
+    if (!user) {
+        throw new ApiError(400, "User is not found! Please sign up!")
+    }
+
+    const ispasswordCorrect = await user.isPasswordCOrrect(password)
+
+    // console.log(ispasswordCorrect);
+    if (!ispasswordCorrect) {
+        throw new ApiError(401, "Invalid user credentials!")
+    }
+
+    //get the access and refreshtoken 
+    const { accesstoken, refreshToken } = await generateAccessAndRefreshToken(user._id)
+
+    //set up the response object
+    const loggedinUser = await User.findById(user._id).select("-password -refreshToken")
+
+    //set cookies and configure how cookies only modify on server
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res.status(200)
+        .cookie("accessToken", accesstoken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(new ApiResponse(200, {
+            user: loggedinUser,
+            accesstoken,
+            refreshToken
+        },
+            "User logged In Successfully!"
+        ))
+})
 
 
-export { registerUser };
+
+
+export { loginUser, registerUser };
 
