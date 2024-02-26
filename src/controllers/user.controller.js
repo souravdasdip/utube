@@ -34,15 +34,21 @@ const registerUser = asyncHandler(async (req, res) => {
 
     //check for  images ( take path from multer )
     const avatarLocalPath = req?.files.avatar[0]?.path
-    const converImageLocalPath = req?.files.coverImage[0]?.path
+    // const converImageLocalPath = req?.files.coverImage[0]?.path
 
     if (!avatarLocalPath) {
         throw new ApiError(400, "Avatar file is required!")
     }
 
+    //check cover image
+    let converImageLocalPath;
+    if (req.files && Array.isArray(req.files.converImage) && req.files.converImage.length > 0) {
+        converImageLocalPath = req.files.coverImage[0].path
+    }
+
     //upload on cloudinary
     const avatarObj = await uploadOnCloudinary(avatarLocalPath)
-    const coverImageObj = await uploadOnCloudinary(converImageLocalPath)
+    const coverImageObj = await uploadOnCloudinary(converImageLocalPath) || ""
 
     if (!avatarObj) {
         throw new ApiError(400, "Avatar file is required!")
