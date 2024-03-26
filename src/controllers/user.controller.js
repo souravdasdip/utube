@@ -438,9 +438,10 @@ const getWatchHistory = asyncHandler(async(req, res) => {
         }
     ])
 
+    console.log({user});
     return res
         .status(200)
-        .json(new ApiResponse(200, user[0].watchHistory),"Watch history successfully!")
+        .json(new ApiResponse(200, user[0]?.watchHistory,"Watch history successfully!"))
 })
 
 export { getWatchHistory, getUserChannelProfile, updateUserAvatar, updateUserCoverImage, updateAccountDetails, getCurrentUser, changeCurrentPassword, loginUser, logoutUser, registerUser, refreshAccessToken };
