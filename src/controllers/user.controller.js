@@ -4,6 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import mongoose from "mongoose";
 
 const generateAccessAndRefreshToken = async (userId) => {
     try {
@@ -394,5 +395,53 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
         .json(new ApiResponse(200, channel[0], "Channel info fetched!"))
 })
 
-export { getUserChannelProfile, updateUserAvatar, updateUserCoverImage, updateAccountDetails, getCurrentUser, changeCurrentPassword, loginUser, logoutUser, registerUser, refreshAccessToken };
+//get watch history
+const getWatchHistory = asyncHandler(async(req, res) => {
+    const user = await User.aggregate([
+        {
+            //Find User in users table
+            $match: {
+                _id: new mongoose.Types.ObjectId(req.user._id)
+            }
+        },{
+            //Lookup the watchHistory video ids and extract video information from the "VIDEO" table
+            $lookup: {
+                from: "videos",
+                localField: 'watchHistory',
+                foreignField: "_id",
+                as: "watchHistory",
+                //Nested pipeline for get the owner of the VIDEO reverse from "User" table
+                pipeline: [{
+                    $lookup: {
+                        from: "users",
+                        localField: "owner",
+                        foreignField: "_id",
+                        as: "owner",
+                        //get only this information
+                        pipeline: [{
+                            $project:{
+                                fullName: 1,
+                                username: 1,
+                                avatar: 1
+                            }
+                        }]
+                    }
+                },{
+                    //get the o index from the results
+                    $addFields: {
+                        owner: {
+                            $first: "$owner"
+                        }
+                    }
+                }]
+            }
+        }
+    ])
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, user[0].watchHistory),"Watch history successfully!")
+})
+
+export { getWatchHistory, getUserChannelProfile, updateUserAvatar, updateUserCoverImage, updateAccountDetails, getCurrentUser, changeCurrentPassword, loginUser, logoutUser, registerUser, refreshAccessToken };
 
