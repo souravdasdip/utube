@@ -110,7 +110,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 
 // get all videos based on query, sort, pagination
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
+    const { page = 1, limit = 10, query_string, sortBy, sortType, userId } = req.query;
     console.log(userId);
     const pipeline = [];
 
@@ -119,12 +119,12 @@ const getAllVideos = asyncHandler(async (req, res) => {
     // Field mappings specify which fields within your documents should be indexed for text search.
     // this helps in seraching only in title, desc providing faster search results
     // here the name of search index is 'search-videos'
-    if (query) {
+    if (query_string) {
         pipeline.push({
             $search: {
                 index: "search-videos",
                 text: {
-                    query: query,
+                    query: query_string,
                     path: ["title", "description"] //search only on title, desc
                 }
             }
